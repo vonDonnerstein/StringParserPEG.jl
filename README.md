@@ -1,11 +1,19 @@
-[![Build Status](https://travis-ci.org/abeschneider/PEGParser.jl.svg?branch=master)](https://travis-ci.org/abeschneider/PEGParser.jl)
+[![Build Status](https://travis-ci.org/vonDonnerstein/StringParserPEG.jl.svg?branch=master)](https://travis-ci.org/vonDonnerstein/StringParserPEG.jl)
 
-# PEGParser
+# StringParserPEG
 
-PEGParser is a parsing library for Parsing Expression Grammars (PEG) in Julia. It was inspired by pyparsing, parsimonious, boost::spirit, as well as several others. The original design was set up by Abe Schneider in 2014. As of January 2017 Henry Schurkus has reworked major parts of the library design. With the redesign also came a change of the API for easier and less error prone use. Below we describe the new design which takes grammar declarations in the form of (multiline) strings. The previous design relied heavily on the specific parsing logic of the julia language and should therefore be considered deprecated.
+StringParserPEG is a string parsing library for Parsing Expression Grammars (PEG) in Julia. 
+It separated from PEGParser.jl (written mainly by Abe Schneider) in 2016, which in turn
+was inspired by pyparsing, parsimonious, boost::spirit, as well as several others. 
+The separation followed a rework of the design undertaken by Henry Schurkus to base the parsing mechanism on strings instead of
+macros. The string based design allows to disentangle the functionality of the library from the julia internal macro parsing
+mechanism and therefore makes it more robust against changes in the julia base code 
+(the discussion leading to the separation of the packages can be found [here](https://github.com/abeschneider/PEGParser.jl/pull/24)). 
+With the redesign also came a change of the API for easier and less error prone use. 
+Below we describe the new design which takes grammar declarations in the form of (multiline) strings.
 
 # Super Quick Tutorial For The Very Busy
-A parser takes a string and a grammar specification to turn the former into a computable structure. PEGParser does this by first parsing (`parse(grammar,string)`) the string into an Abstract Syntax Tree (AST) and then transforming this AST into the required structure (`transform(function,AST)`).
+A parser takes a string and a grammar specification to turn the former into a computable structure. StringParserPEG does this by first parsing (`parse(grammar,string)`) the string into an Abstract Syntax Tree (AST) and then transforming this AST into the required structure (`transform(function,AST)`).
 
 ## Defining a grammar
 
@@ -37,7 +45,7 @@ The argument to `Grammar()` is a String, where line ends or semicoli (;) can be 
 All grammars by default use `start` as the starting rule. You can specify a different starting rule in the `parse` function if you desire.
 
 ### Example 1
-Note: All these examples and more can be found in the examples folder of PEGParser.
+Note: All these examples and more can be found in the examples folder of StringParserPEG.
 
 Let's start by creating a simple calculator that can take two numbers and an operator to give a result.
 
@@ -65,20 +73,20 @@ The `number` rule just matches any digit between 0 to 9. You'll note that spaces
 Now we can run this grammar with some input:
 
 ```julia
-(ast, pos, error) = parse(calc1, "4+5")
-println(ast)
+(ast, pos, err) = parse(calc1, "4+5")
+ast
 ```
 
 resulting in the following output:
 
 ```
-node() {PEGParser.AndRule}
-1: node() {PEGParser.AndRule}
-  1: node() {'4',PEGParser.RegexRule}
-2: node() {PEGParser.AndRule}
-  1: node() {'+',PEGParser.Terminal}
-3: node() {PEGParser.AndRule}
-  1: node() {'5',PEGParser.RegexRule}
+node() {StringParserPEG.AndRule}
+1: node() {StringParserPEG.AndRule}
+  1: node() {'4',StringParserPEG.RegexRule}
+2: node() {StringParserPEG.AndRule}
+  1: node() {'+',StringParserPEG.Terminal}
+3: node() {StringParserPEG.AndRule}
+  1: node() {'5',StringParserPEG.RegexRule}
 ```
 
 ## Transformation
@@ -103,13 +111,13 @@ calc1 = Grammar("""
 ```
 leading to the following AST
 ```julia
-node(start) {PEGParser.AndRule}
-1: node(number) {PEGParser.AndRule}
-  1: node() {'4',PEGParser.RegexRule}
-2: node(plus) {PEGParser.AndRule}
-  1: node() {'+',PEGParser.Terminal}
-3: node(number) {PEGParser.AndRule}
-  1: node() {'5',PEGParser.RegexRule}
+node(start) {StringParserPEG.AndRule}
+1: node(number) {StringParserPEG.AndRule}
+  1: node() {'4',StringParserPEG.RegexRule}
+2: node(plus) {StringParserPEG.AndRule}
+  1: node() {'+',StringParserPEG.Terminal}
+3: node(number) {StringParserPEG.AndRule}
+  1: node() {'5',StringParserPEG.RegexRule}
 ```
 
 We can now define the actuator function as
@@ -128,9 +136,20 @@ to obtain the correct result, `9`.
 
 ## Actions
 
-Not always does one want to create every node directly as a basic `Node` type. Actions allow to directly act on parts of the AST during its very construction. An action is specified by `{ action }` following any rule. Generally a function (anonymous or explicit) has to be specified which takes the following arguments `(rule, value, firstpos, lastpos, childnodes)` and may return anything which nodes higher up in the AST can work with. 
+Not always does one want to create every node as a basic `Node` type. Actions
+allow to operate on parts of the AST during its very construction. An action is
+specified by `{ action }` following any rule. Generally a function (anonymous
+or explicit) has to be specified which takes the following arguments `(rule,
+value, firstpos, lastpos, childnodes)` and may return anything which nodes
+higher up in the AST can work with. 
 
-As a shorthand just specifying a name as a string, e.g. `"name"`, results in a normal node, but with the specified name set. This is how we did the naming in example 1 above. As a side note: The action `liftchild` just takes the child of the node and returns it on the current level. This is the default action for `|`-rules - whichever child gets matched is returned in place of the `|`-rule as if we had explicitly specified
+As a shorthand just specifying a name as a string, e.g. `"name"`, results in a
+normal node, but with the specified name set. This is how we did the naming in
+example 1 above. As a side note: The action `liftchild` just takes the child of
+the node and returns it on the current level. This is the default action for
+`|`-rules - whichever child gets matched is returned in place of the `|`-rule
+as if we had explicitly specified
+
 ```julia
 myOrRule = (rule1 | rule2) {liftchild}
 ```
@@ -165,7 +184,7 @@ Actually, the best example for how to parse stuff can be found in the source cod
 
 # An In Depth Guide To The Library
 
-* The entry point to the library is of course the file `PEGParser.jl` which handles all `import`/`export`ing and includes the other files in order.
+* The entry point to the library is of course the file `StringParserPEG.jl` which handles all `import`/`export`ing and includes the other files in order.
 * `rules.jl` defines `Rule` and all its `subtypes`. These typically consist of a `name` (which when constructed with the default constructor is simply `""`), a type-specific `value` and an `action`.
 * `grammar.jl` defines the `Grammar`-type as a dictionary mapping symbols to rules.
 * `comparison.jl` defines comparison functions so that it is possible to check for example if two grammars are the same.

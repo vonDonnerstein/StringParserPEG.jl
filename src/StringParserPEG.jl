@@ -1,4 +1,4 @@
-module PEGParser
+module StringParserPEG
 
 export StandardCache, Node, transform, Grammar, Rule, MatchRule
 export parseGrammar, parseDefinition

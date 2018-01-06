@@ -1,4 +1,4 @@
-using PEGParser
+using StringParserPEG
 
 lispgrammar = Grammar("""
   start => expr { liftchild }

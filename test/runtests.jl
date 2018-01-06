@@ -1,7 +1,10 @@
 using Base.Test
-using PEGParser
+using StringParserPEG
+
 include("../examples/calc1.jl")
 @test transformed == 9
+
 include("../examples/calc2.jl")
 @test ast == 9
-@test PEGParser.grammargrammar == Grammar(PEGParser.grammargrammar_string)
+
+@test StringParserPEG.grammargrammar == Grammar(StringParserPEG.grammargrammar_string)

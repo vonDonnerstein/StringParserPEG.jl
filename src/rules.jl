@@ -2,7 +2,7 @@
 # Rules #
 #########
 
-abstract Rule
+abstract type Rule end
 
 
 type Terminal <: Rule

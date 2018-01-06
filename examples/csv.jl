@@ -1,4 +1,4 @@
-using PEGParser
+using StringParserPEG
 
 function createRecord(rule,value,first,last,children)
   if length(children) == 0

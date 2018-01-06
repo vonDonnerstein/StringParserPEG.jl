@@ -16,7 +16,7 @@ end
 # ParserCache #
 ###############
 
-abstract ParserCache
+abstract type ParserCache end
 
 type StandardCache <: ParserCache
   values::Dict{AbstractString, Node}

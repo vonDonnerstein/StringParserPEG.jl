@@ -1,7 +1,6 @@
-PEGParser.jl is licensed under the MIT License:
+StringParserPEG.jl is licensed under the MIT License:
 
-> Copyright (c) since 2014: <Henry Schurkus, Abe Schneider, 
-> and other contributors.>
+> Copyright (c) since 2017: <Henry Schurkus and other contributors.>
 
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the

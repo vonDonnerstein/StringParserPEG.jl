@@ -80,7 +80,7 @@ function togrammar(node, children, ::MatchRule{:SINGLE})
     elseif isa(action,Expr)
       node.action = eval(action)
     elseif isa(action,Symbol)
-      node.action = getfield(PEGParser,action)
+      node.action = getfield(StringParserPEG,action)
     else
       error("Unexpected action type $(typeof(action)): $action")
     end

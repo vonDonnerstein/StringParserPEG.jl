@@ -1,4 +1,4 @@
-using PEGParser
+using StringParserPEG
 
 calc2 = Grammar("""
   start => (number & op & number){(r,v,f,l,c) -> c[2](c[1],c[3])}
@@ -12,5 +12,5 @@ calc2 = Grammar("""
 
 data = "4+5"
 
-(ast, pos, error) = parse(calc2, data)
-println(ast)
+(ast, pos, err) = parse(calc2, data)
+ast
