@@ -21,8 +21,8 @@ A grammar can be defined as:
 
 ```julia
 Grammar("""
-  rule1 = ...
-  rule2 = ...
+  rule1 => ...
+  rule2 => ...
   ...
 """)
 ```
@@ -33,7 +33,7 @@ where the following rules can be used:
 * Terminals: `'a'` (must match literally)
 * Or: `rule1 | rule2 | rule3` (the first rule that matches wins)
 * And: `rule1 & rule2 & rule3` (the rules are matched one after the other (`&` groups stronger than `|`)
-* Grouping: `(rule1 + rule2) | (rule3 + rule4)`
+* Grouping: `(rule1 & rule2) | (rule3 & rule4)`
 * Optional: `?(rule1)` (is matched if possible, but counts as matched anyways)
 * One or more: `+(rule1)` (is matched as often as possible, but has to be matched at least once)
 * Zero or more: `*(rule1)` (is matched as often as possible, but counts as matched even if never matched)
