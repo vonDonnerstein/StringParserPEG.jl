@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using StringParserPEG
 
 include("../examples/calc1.jl")

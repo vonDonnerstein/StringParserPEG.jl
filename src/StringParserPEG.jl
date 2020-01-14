@@ -1,4 +1,5 @@
 module StringParserPEG
+using InteractiveUtils
 
 export StandardCache, Node, transform, Grammar, Rule, MatchRule
 export parseGrammar, parseDefinition

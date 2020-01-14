@@ -4,7 +4,7 @@ for rule in subtypes(Rule)
     definition *= "r1.$field==r2.$field && "
   end
   definition *= "true)"
-  eval(parse(definition))
+  eval(Meta.parse(definition))
 end
 
 

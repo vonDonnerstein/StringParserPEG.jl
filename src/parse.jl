@@ -2,8 +2,8 @@
 # Helpers #
 ###########
 
-unref{T <: Any}(value::T) = [value]
-unref{T <: Rule}(node::Node, ::Type{T}) = [node]
+unref(value::T) where T = [value]
+unref(node::Node, ::Type{T}) where T<:Rule = [node]
 unref(node::Node, ::Type{ReferencedRule}) = node.children
 unref(node::Node) = unref(node, node.ruleType)
 
@@ -18,7 +18,7 @@ end
 
 abstract type ParserCache end
 
-type StandardCache <: ParserCache
+struct StandardCache <: ParserCache
   values::Dict{AbstractString, Node}
 
   function StandardCache()
@@ -46,7 +46,7 @@ function parse(grammar::Grammar, text::AbstractString; cache=nothing, start=:sta
     if length(text) > pos+15
       sequence = text[pos:pos+15]*"..."
     end
-    error = ParseError("Entire string did not match at pos: $pos ($sequence)")
+    error = Meta.ParseError("Entire string did not match at pos: $pos ($sequence)")
   end
 
   return (ast, pos, error)
@@ -56,7 +56,7 @@ end
     parse(grammar, rule, text, pos, cache)
 parses `text` according to `rule` within `grammar` starting with position `pos`. Specifying a `cache` different than `nothing` allows to reuse previous work, whenever the same rule has been matched at the same position before. If no `cache` is specified or no match in `cache` is found `parse` resorts to `parse_newcachekey`, because in an non-existent cache every cachekey is new.
 """
-function parse(grammar::Grammar, rule::Rule, text::AbstractString, pos::Int, cache::Void)
+function parse(grammar::Grammar, rule::Rule, text::AbstractString, pos::Int, cache::Nothing)
   return parse_newcachekey(grammar, rule, text, pos, cache)
 end
 
@@ -79,7 +79,7 @@ function parse(grammar::Grammar, rule::Rule, text::AbstractString, pos::Int, cac
   return (node, pos, error)
 end
 
-function parse(grammar::Grammar, symbol::Symbol, text::AbstractString, pos::Int, cache::Union{StandardCache,Void})
+function parse(grammar::Grammar, symbol::Symbol, text::AbstractString, pos::Int, cache::Union{StandardCache,Nothing})
   parse(grammar, grammar.rules[symbol], text, pos, cache)
 end
 
@@ -121,7 +121,7 @@ function parse_newcachekey(grammar::Grammar, rule::OrRule, text::AbstractString,
   end
 
   # give error
-  return (nothing, pos, ParseError("No match (OneOrMoreRule) at pos: $pos"))
+  return (nothing, pos, Meta.ParseError("No match (OneOrMoreRule) at pos: $pos"))
 end
 
 function parse_newcachekey(grammar::Grammar, rule::AndRule, text::AbstractString, pos::Int, cache)
@@ -155,7 +155,7 @@ function parse_newcachekey(grammar::Grammar, rule::Terminal, text::AbstractStrin
   end
 
   len = min(pos+size-1, length(text))
-  return (nothing, pos, ParseError("'$(text[pos:len])' does not match '$(rule.value)'. At pos: $pos"))
+  return (nothing, pos, Meta.ParseError("'$(text[pos:len])' does not match '$(rule.value)'. At pos: $pos"))
 end
 
 function parse_newcachekey(grammar::Grammar, rule::OneOrMoreRule, text::AbstractString, pos::Int, cache)
@@ -164,7 +164,7 @@ function parse_newcachekey(grammar::Grammar, rule::OneOrMoreRule, text::Abstract
 
   # make sure there is at least one
   if child === nothing
-    return (nothing, pos, ParseError("No match (OneOrMoreRule) at pos: $pos"))
+    return (nothing, pos, Meta.ParseError("No match (OneOrMoreRule) at pos: $pos"))
   end
 
   # and continue making matches for as long as we can
@@ -208,7 +208,7 @@ function parse_newcachekey(grammar::Grammar, rule::RegexRule, text::AbstractStri
 
   # use regex match
   pattern = Regex("^$(rule.value.pattern)")
-  if ismatch(pattern, text[firstPos:end])
+  if occursin(pattern, text[firstPos:end])
     value = match(pattern, text[firstPos:end])
 
     if length(value.match) == 0
@@ -222,7 +222,7 @@ function parse_newcachekey(grammar::Grammar, rule::RegexRule, text::AbstractStri
       return (node, pos, nothing)
     end
   else
-    return (nothing, firstPos, ParseError("Could not match RegEx at pos: $pos"))
+    return (nothing, firstPos, Meta.ParseError("Could not match RegEx at pos: $pos"))
   end
 end
 
@@ -263,7 +263,7 @@ function parse_newcachekey(grammar::Grammar, rule::ListRule, text::AbstractStrin
   end
 
   if count < rule.min
-    return (nothing, pos, ParseError("No match (ListRule) at pos: $pos"))
+    return (nothing, pos, Meta.ParseError("No match (ListRule) at pos: $pos"))
   end
 
   node = make_node(rule, text[firstPos:pos-1], firstPos, pos, children)
@@ -291,7 +291,7 @@ function parse_newcachekey(grammar::Grammar, rule::NotRule, text::AbstractString
 
   # if we match, it's an error
   if error == nothing
-    error = ParseError("No match (NotRule) at pos: $pos")
+    error = Meta.ParseError("No match (NotRule) at pos: $pos")
   else
     # otherwise, return a success
     error = nothing
@@ -326,7 +326,7 @@ function parse_newcachekey(grammar::Grammar, rule::IntegerRule, text::AbstractSt
   firstPos = pos
 
   # use regex match
-  if ismatch(rexpr, text[firstPos:end])
+  if occursin(rexpr, text[firstPos:end])
     value = match(rexpr, text[firstPos:end])
 
     if length(value.match) != 0
@@ -336,7 +336,7 @@ function parse_newcachekey(grammar::Grammar, rule::IntegerRule, text::AbstractSt
       return (node, pos, nothing)
     end
   else
-    return (nothing, firstPos, ParseError("Could not match IntegerRule at pos: $pos"))
+    return (nothing, firstPos, Meta.ParseError("Could not match IntegerRule at pos: $pos"))
   end
 end
 
@@ -345,7 +345,7 @@ function parse_newcachekey(grammar::Grammar, rule::FloatRule, text::AbstractStri
   firstPos = pos
 
   # use regex match
-  if ismatch(rexpr, text[firstPos:end])
+  if occursin(rexpr, text[firstPos:end])
     value = match(rexpr, text[firstPos:end])
 
     if length(value.match) != 0
@@ -355,6 +355,6 @@ function parse_newcachekey(grammar::Grammar, rule::FloatRule, text::AbstractStri
       return (node, pos, nothing)
     end
   else
-    return (nothing, firstPos, ParseError("Could not match FloatRule at pos: $pos"))
+    return (nothing, firstPos, Meta.ParseError("Could not match FloatRule at pos: $pos"))
   end
 end

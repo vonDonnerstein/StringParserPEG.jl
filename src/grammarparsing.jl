@@ -12,7 +12,7 @@ function createRefNode(rule, value, first, last, children)
   return Node("REF", children[1].value, first, last, children[1].children, children[1].ruleType)
 end
 function createTermNode(rule, value, first, last, children)
-  disescapedcontent = replace(children[1].value, "''", "'")
+  disescapedcontent = replace(children[1].value, "''" => "'")
   return Node("TERM", disescapedcontent, first, last, [], Terminal)
 end
 
@@ -72,7 +72,7 @@ togrammar(node, children, ::MatchRule{:ACTION}) = node.value
 function togrammar(node, children, ::MatchRule{:SINGLE})
   node = children[1]
   if length(children)==2 # action specification exists
-    action = parse(children[2])
+    action = Meta.parse(children[2])
     if isa(action,AbstractString)
       node.name = action
     elseif isa(action,Function)

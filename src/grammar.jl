@@ -1,4 +1,4 @@
-type Grammar
+struct Grammar
   rules::Dict{Symbol, Rule}
 end
 

@@ -5,7 +5,7 @@
 abstract type Rule end
 
 
-type Terminal <: Rule
+mutable struct Terminal <: Rule
   name::AbstractString
   value::AbstractString
   action
@@ -13,7 +13,7 @@ end
 Terminal(name::AbstractString, value) = Terminal(name, string(value), no_action)
 
 
-type ReferencedRule <: Rule
+mutable struct ReferencedRule <: Rule
   name::AbstractString
   symbol::Symbol
   action
@@ -21,7 +21,7 @@ end
 ReferencedRule(name::AbstractString, symbol::Symbol) = ReferencedRule(name, symbol, no_action)
 
 
-type AndRule <: Rule
+mutable struct AndRule <: Rule
   name::AbstractString
   values::Array{Rule}
   action
@@ -30,7 +30,7 @@ AndRule(name::AbstractString, values::Array{Rule}) = AndRule(name, values, no_ac
 AndRule(name::AbstractString, left::Rule, right::Rule) = AndRule(name, [left, right], no_action)
 
 
-type OrRule <: Rule
+mutable struct OrRule <: Rule
   name::AbstractString
   values::Array{Rule}
   action
@@ -42,21 +42,21 @@ OrRule(name::AbstractString, left::Rule, right::OrRule) = OrRule(name, [left, ri
 OrRule(name::AbstractString, left::Rule, right::Rule) = OrRule(name, [left, right], liftchild)
 
 
-type OneOrMoreRule <: Rule
+mutable struct OneOrMoreRule <: Rule
   name::AbstractString
   value::Rule
   action
 end
 
 
-type ZeroOrMoreRule <: Rule
+mutable struct ZeroOrMoreRule <: Rule
   name::AbstractString
   value::Rule
   action
 end
 
 
-type MultipleRule <: Rule
+mutable struct MultipleRule <: Rule
   name::AbstractString
   value::Rule
   minCount::Int
@@ -66,7 +66,7 @@ end
 MultipleRule(name::AbstractString, value::Rule, minCount::Int, maxCount::Int) = MultipleRule(name, value, minCount, maxCount, no_action)
 
 
-type RegexRule <: Rule
+mutable struct RegexRule <: Rule
   name::AbstractString
   value::Regex
   action
@@ -74,28 +74,28 @@ end
 RegexRule(name::AbstractString, value::Regex) = RegexRule(name, value, no_action)
 
 
-type OptionalRule <: Rule
+mutable struct OptionalRule <: Rule
   name::AbstractString
   value::Rule
   action
 end
 
 
-type LookAheadRule <: Rule
+mutable struct LookAheadRule <: Rule
     name::AbstractString
     value::Rule
     action
 end
 
 
-type SuppressRule <: Rule
+mutable struct SuppressRule <: Rule
   name::AbstractString
   value::Rule
   action
 end
 
 
-type ListRule <: Rule
+mutable struct ListRule <: Rule
   name::AbstractString
   entry::Rule
   delim::Rule
@@ -105,7 +105,7 @@ end
 ListRule(name::AbstractString, entry::Rule, delim::Rule, min::Int=1) = ListRule(name, entry, delim, min, no_action)
 
 
-type NotRule <: Rule
+mutable struct NotRule <: Rule
   name
   entry
   action
@@ -113,7 +113,7 @@ end
 NotRule(name::AbstractString, entry::Rule) = NotRule(name, entry, no_action)
 
 
-type EndOfFileRule <: Rule
+mutable struct EndOfFileRule <: Rule
   name::AbstractString
   action
 end
@@ -123,19 +123,19 @@ end
     EmptyRule(name,action)
 is a rule that never consumes
 """
-type EmptyRule <: Rule
+mutable struct EmptyRule <: Rule
   name
   action
 end
 
 
-type IntegerRule <: Rule
+mutable struct IntegerRule <: Rule
   name::AbstractString
   action
 end
 
 
-type FloatRule <: Rule
+mutable struct FloatRule <: Rule
   name::AbstractString
   action
 end
@@ -146,15 +146,15 @@ end
 ################
 
 for rule in [FloatRule, IntegerRule, EmptyRule, EndOfFileRule]
-  eval(parse("$rule(name::AbstractString) = $rule(name, no_action)"))
+  eval(Meta.parse("$rule(name::AbstractString) = $rule(name, no_action)"))
 end
 
 for rule in [SuppressRule, LookAheadRule, OptionalRule, ZeroOrMoreRule, OneOrMoreRule]
-  eval(parse("$rule(name::AbstractString, value::Rule) = $rule(name, value, no_action)"))
+  eval(Meta.parse("$rule(name::AbstractString, value::Rule) = $rule(name, value, no_action)"))
 end
 
 for rule in subtypes(Rule)
-  eval(parse("$rule(args...) = $rule(\"\", args...)"))
+  eval(Meta.parse("$rule(args...) = $rule(\"\", args...)"))
 end
 
 
