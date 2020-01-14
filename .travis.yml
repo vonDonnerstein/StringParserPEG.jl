@@ -2,11 +2,13 @@ language: julia
 os:
   - linux
   - osx
+  - windows
+julia:
+  - 1           # automatically the latest version to this major
+  - 1.0         # set manually to the version given in REQUIRE
+  - nightly
 git:
   depth: 3
-julia:
-  - release
-  - nightly
 matrix:
   allow_failures:
     - julia: nightly
