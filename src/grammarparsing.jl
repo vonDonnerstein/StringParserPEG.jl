@@ -30,7 +30,7 @@ or  = OrRule
 The grammar to parse grammars. For obvious reasons this has to be constructed "by hand" from constructors, as it is needed itself for the parsing of grammar strings. `grammargrammar_string` is a consistency check and parses to grammargrammar - but only when grammargrammar already exists for its parsing.
 """
 const grammargrammar = Grammar(Dict{Symbol,Any}(
-:start     => and([ sup(ZeroOrMoreRule(ref(:emptyline))), ZeroOrMoreRule("ALLRULES",ref(:ruleline)) ],liftchild),
+:start     => and([ sup(ZeroOrMoreRule(ref(:emptyline))), ZeroOrMoreRule("ALLRULES",ref(:ruleline)), sup(OptionalRule(ref(:space))) ],liftchild),
 
 :emptyline => and( sup(ref(:space)), ref(:endofline) ),
 :ruleline  => and([ sup(ref(:space)), ref(:rule), ZeroOrMoreRule(sup(ref(:emptyline))) ],liftchild),
@@ -116,7 +116,7 @@ togrammar(node, children, ::MatchRule{:ALLRULES}) = Grammar(Dict(children))
 `grammargrammar` parses `grammargrammar_string` such that when transformed with `transform(togrammar,ast)` again `grammmargrammmar` results. This is a consistency check and allows to understand what happens in the `grammargrammar` construction in a more legible form.
 """
 const grammargrammar_string = """
-start      => (-(*(emptyline)) & *(ruleline) {"ALLRULES"}) {liftchild}
+start      => (-(*(emptyline)) & *(ruleline) {"ALLRULES"} & -(?(space))) {liftchild}
 
 emptyline  => -(space) & endofline
 ruleline   => ( -(space) & rule & *(-(emptyline)) ) {liftchild}
