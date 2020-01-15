@@ -179,6 +179,16 @@ calc2 = Grammar("""
 ```
 which would have directly resulted in `9` when parsing `parse(calc2, "4+5")`.
 
+Note, that if you wish to define function outside the grammar definition and call them by name, then you have to do so in the scope of `StringParserPEG`, e.g.
+
+```julia
+using StringParserPEG
+@eval StringParserPEG begin
+  foo(r,v,f,l,c) = "foo"
+end
+Grammar("start => 'f' {foo}")
+```
+
 ### Example 3
 Actually, the best example for how to parse stuff can be found in the source code itself. In `grammarparsing.jl` we give the grammar used to parse grammar specifications by the user. While it is not actually live code, its consistency with what really happens is ensured by having it be a test in the test suite. Look here if you ever wonder about any specifics of grammar specification.
 
