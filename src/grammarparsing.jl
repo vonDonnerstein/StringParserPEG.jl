@@ -38,7 +38,7 @@ const grammargrammar = Grammar(Dict{Symbol,Any}(
 
 :definition=> or([ ref(:double), ref(:single) ]), # from left to right: ' can contain ' => parse order
 
-:single    => and("SINGLE", or([ref(:parenrule),ref(:zeromorerule),ref(:onemorerule),ref(:optionalrule),ref(:suppressrule),ref(:regexrule),ref(:term),ref(:refrule)]), OptionalRule(and([sup(ref(:space)),ref(:action)],liftchild),liftchild) ), # only single token rules can have associated actions (-> unique interpretation)
+:single    => and("SINGLE", or([ref(:parenrule),ref(:zeromorerule),ref(:onemorerule),ref(:optionalrule),ref(:notrule),ref(:suppressrule),ref(:regexrule),ref(:term),ref(:refrule)]), OptionalRule(and([sup(ref(:space)),ref(:action)],liftchild),liftchild) ), # only single token rules can have associated actions (-> unique interpretation)
 :double    => or([ref(:orrule),ref(:andrule)]), # 'and' groups stronger than 'or'
 
 :parenrule => and("PAREN",[ sup(Terminal('(')), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
@@ -47,6 +47,7 @@ const grammargrammar = Grammar(Dict{Symbol,Any}(
 :zeromorerule => and("*",[ sup(Terminal("*(")), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
 :onemorerule  => and("+",[ sup(Terminal("+(")), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
 :optionalrule => and("?",[ sup(Terminal("?(")), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
+:notrule      => and("!",[ sup(Terminal("!(")), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
 :suppressrule => and("-",[ sup(Terminal("-(")), sup(ref(:space)), ref(:definition), sup(ref(:space)), sup(Terminal(')')) ]),
 :refrule   => ref(:symbol,createRefNode),
 :term      => and([ sup(Terminal('\'')), RegexRule(r"([^']|'')+"), sup(Terminal('\'')) ], createTermNode),
@@ -90,6 +91,7 @@ end
 togrammar(node, children, ::MatchRule{:*}) = ZeroOrMoreRule(children[1])
 togrammar(node, children, ::MatchRule{:?}) = OptionalRule(children[1])
 togrammar(node, children, ::MatchRule{:+}) = OneOrMoreRule(children[1])
+togrammar(node, children, ::MatchRule{:!}) = NotRule(children[1])
 togrammar(node, children, ::MatchRule{:-}) = SuppressRule(children[1])
 togrammar(node, children, ::MatchRule{:more}) = Vector{Rule}(children)
 function togrammar(node, children, ::MatchRule{:AND})
@@ -124,7 +126,7 @@ rule       => ( symbol & -(space) & -('=>') & -(space) & definition ) {"RULE"}
 
 definition => double | single
 
-single     => ( (parenrule | zeromorerule | onemorerule | optionalrule | suppressrule | regexrule | term | refrule) & ?((-(space) & action) {liftchild}) {liftchild} ) {"SINGLE"}
+single     => ( (parenrule | zeromorerule | onemorerule | optionalrule | notrule | suppressrule | regexrule | term | refrule) & ?((-(space) & action) {liftchild}) {liftchild} ) {"SINGLE"}
 double     => orrule | andrule
 
 parenrule  => ( -('(') & -(space) & definition & -(space) & -(')') ) {"PAREN"}
@@ -133,6 +135,7 @@ andrule    => (            single  & +( (-(space) & -('&') & -(space) &         
 zeromorerule   => ( -('*(') & -(space) & definition & -(space) & -(')') ){"*"}
 onemorerule    => ( -('+(') & -(space) & definition & -(space) & -(')') ){"+"}
 optionalrule   => ( -('?(') & -(space) & definition & -(space) & -(')') ){"?"}
+notrule        => ( -('!(') & -(space) & definition & -(space) & -(')') ){"!"}
 suppressrule   => ( -('-(') & -(space) & definition & -(space) & -(')') ){"-"}
 refrule    => symbol {createRefNode}
 term       => ( -('''') & r(([^']|'')+)r & -('''') ) {createTermNode}

@@ -35,6 +35,7 @@ where the following rules can be used:
 * And: `rule1 & rule2 & rule3` (the rules are matched one after the other (`&` groups stronger than `|`)
 * Grouping: `(rule1 & rule2) | (rule3 & rule4)`
 * Optional: `?(rule1)` (is matched if possible, but counts as matched anyways)
+* Negation: `!(rule)` (is matched if `rule` is not, consumes nothing)
 * One or more: `+(rule1)` (is matched as often as possible, but has to be matched at least once)
 * Zero or more: `*(rule1)` (is matched as often as possible, but counts as matched even if never matched)
 * Regular expressions: `r([a-zA-Z]+)r` (matches whatever the regex between `r(` and `)r` matches)
@@ -191,6 +192,22 @@ Grammar("start => 'f' {foo}")
 
 ### Example 3
 Actually, the best example for how to parse stuff can be found in the source code itself. In `grammarparsing.jl` we give the grammar used to parse grammar specifications by the user. While it is not actually live code, its consistency with what really happens is ensured by having it be a test in the test suite. Look here if you ever wonder about any specifics of grammar specification.
+
+## On the subject of negation
+Negation is easily misunderstood as "matching anything that isn't `rule`". That's not quite correct, since `!()` doesn't actually consume anything (it's *not* matching, so how much would you assume it consumes anyways ;)). To understand the what negation does, consider a simple example.
+
+We want to match any string between '<<' and '>>'. Simple enough?
+```julia
+g = Grammar("""start => '<<' & *(char) & '>>'
+               char  => r(.)r""")
+parse(g, "<< a << b < c >>")
+```
+errors because *(char) consumes anything after the initial '<<' -- including the final '>>', so the explicit '>>' in `:start` cannot be matched. The solution:
+```julia
+g = Grammar("""start => '<<' & *(char) & '>>'
+               char  => !('>>') & r(.)r""")
+```
+which only matches char until '>>'.
 
 # An In Depth Guide To The Library
 
