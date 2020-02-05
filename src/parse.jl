@@ -38,13 +38,15 @@ parses `text` according to `grammar` to yield a tuple consisting of Abstract Syn
 `start` specifies the symbol associated to the rule at the top of the AST. Specifying a `cache` different than `nothing` allows to reuse previous work, whenever the same rule is evaluated at the same position again.
 """
 function parse(grammar::Grammar, text::AbstractString; cache=nothing, start=:start)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
+
   rule = grammar.rules[start]
   (ast, pos, error) = parse(grammar, rule, text, 1, cache)
 
   if pos < length(text) + 1
-    sequence = text[pos:end]
-    if length(text) > pos+15
-      sequence = text[pos:pos+15]*"..."
+    sequence = text[utf8ind[pos]:end]
+    if length(sequence) > 15
+      sequence = text[utf8ind[pos]:utf8ind[pos+15]]*"..."
     end
     error = Meta.ParseError("Entire string did not match at pos: $pos ($sequence)")
   end
@@ -94,13 +96,14 @@ end
 parses `text` according to `rule` within `grammar` starting with position `pos` without trying to lookup the complete match in the specified `cache`. Matches of children of the current `rule` along the `text` to parse will however be looked-up in `cache`.
 """
 function parse_newcachekey(grammar::Grammar, rule::ReferencedRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   refrule = grammar.rules[rule.symbol]
 
   firstPos = pos
   (childNode, pos, error) = parse(grammar, refrule, text, pos, cache)
 
   if childNode !== nothing
-    node = make_node(rule, text[firstPos:pos-1], firstPos, pos, [childNode])
+    node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, [childNode])
     return (node, pos, error)
   else
     return (nothing, pos, error)
@@ -108,6 +111,7 @@ function parse_newcachekey(grammar::Grammar, rule::ReferencedRule, text::Abstrac
 end
 
 function parse_newcachekey(grammar::Grammar, rule::OrRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   # Try branches in order (left to right). The first branch to match will be marked
   # as a success. If no branches match, then return an error.
   firstPos = pos
@@ -115,7 +119,7 @@ function parse_newcachekey(grammar::Grammar, rule::OrRule, text::AbstractString,
     (child, pos, error) = parse(grammar, branch, text, pos, cache)
 
     if child !== nothing
-      node = make_node(rule, text[firstPos:pos-1], firstPos, pos, unref(child))
+      node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, unref(child))
       return (node, pos, error)
     end
   end
@@ -125,6 +129,7 @@ function parse_newcachekey(grammar::Grammar, rule::OrRule, text::AbstractString,
 end
 
 function parse_newcachekey(grammar::Grammar, rule::AndRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   firstPos = pos;
 
   # All items in sequence must match, otherwise give an error
@@ -142,23 +147,25 @@ function parse_newcachekey(grammar::Grammar, rule::AndRule, text::AbstractString
     end
   end
 
-  node = make_node(rule, text[firstPos:pos-1], firstPos, pos, value)
+  node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, value)
   return (node, pos, nothing)
 end
 
 function parse_newcachekey(grammar::Grammar, rule::Terminal, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   local size::Int = length(rule.value)
 
-  if startswith(text[pos:end],rule.value)
-    node = make_node(rule, text[pos:pos+size-1], pos, pos+size, [])
+  if startswith(text[utf8ind[pos]:end],rule.value)
+    node = make_node(rule, text[utf8ind[pos]:utf8ind[pos+size-1]], pos, pos+size, [])
     return (node, pos+size, nothing)
   end
 
   len = min(pos+size-1, length(text))
-  return (nothing, pos, Meta.ParseError("'$(text[pos:len])' does not match '$(rule.value)'. At pos: $pos"))
+  return (nothing, pos, Meta.ParseError("'$(text[utf8ind[pos]:utf8ind[len]])' does not match '$(rule.value)'. At pos: $pos"))
 end
 
 function parse_newcachekey(grammar::Grammar, rule::OneOrMoreRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   firstPos = pos
   (child, pos, error) = parse(grammar, rule.value, text, pos, cache)
 
@@ -177,11 +184,12 @@ function parse_newcachekey(grammar::Grammar, rule::OneOrMoreRule, text::Abstract
     end
   end
 
-  node = make_node(rule, text[firstPos:pos-1], firstPos, pos, children)
+  node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, children)
   return (node, pos, nothing)
 end
 
 function parse_newcachekey(grammar::Grammar, rule::ZeroOrMoreRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   firstPos::Int = pos
   children::Array = Any[]
 
@@ -195,7 +203,7 @@ function parse_newcachekey(grammar::Grammar, rule::ZeroOrMoreRule, text::Abstrac
   end
 
   if length(children) > 0
-    node = make_node(rule, text[firstPos:pos-1], firstPos, pos, children)
+    node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, children)
   else
     node = nothing
   end
@@ -204,12 +212,13 @@ function parse_newcachekey(grammar::Grammar, rule::ZeroOrMoreRule, text::Abstrac
 end
 
 function parse_newcachekey(grammar::Grammar, rule::RegexRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   firstPos = pos
 
   # use regex match
   pattern = Regex("^$(rule.value.pattern)")
-  if occursin(pattern, text[firstPos:end])
-    value = match(pattern, text[firstPos:end])
+  if occursin(pattern, text[utf8ind[firstPos]:end])
+    value = match(pattern, text[utf8ind[firstPos]:end])
 
     if length(value.match) == 0
       # this means that we didn't match, but the regex was optional, so we don't want to give an
@@ -217,7 +226,7 @@ function parse_newcachekey(grammar::Grammar, rule::RegexRule, text::AbstractStri
       return (nothing, firstPos, nothing)
     else
       pos += length(value.match)
-      node = make_node(rule, text[firstPos:pos-1], firstPos, pos, [])
+      node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, [])
 
       return (node, pos, nothing)
     end
@@ -227,11 +236,12 @@ function parse_newcachekey(grammar::Grammar, rule::RegexRule, text::AbstractStri
 end
 
 function parse_newcachekey(grammar::Grammar, rule::OptionalRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   (child, pos, error) = parse(grammar, rule.value, text, pos, cache)
   firstPos = pos
 
   if child !== nothing
-    node = make_node(rule, text[firstPos:pos-1], firstPos, pos, unref(child))
+    node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, unref(child))
     return (node, pos, error)
   end
 
@@ -240,6 +250,7 @@ function parse_newcachekey(grammar::Grammar, rule::OptionalRule, text::AbstractS
 end
 
 function parse_newcachekey(grammar::Grammar, rule::ListRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   firstPos = pos
 
   # number of occurances
@@ -266,7 +277,7 @@ function parse_newcachekey(grammar::Grammar, rule::ListRule, text::AbstractStrin
     return (nothing, pos, Meta.ParseError("No match (ListRule) at pos: $pos"))
   end
 
-  node = make_node(rule, text[firstPos:pos-1], firstPos, pos, children)
+  node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, children)
   return (node, pos, nothing)
 end
 
@@ -320,18 +331,19 @@ function parse_newcachekey(grammar::Grammar, rule::EndOfFileRule, text::Abstract
 end
 
 function parse_newcachekey(grammar::Grammar, rule::IntegerRule, text::AbstractString, pos::Int, cache)
+  utf8ind = collect(eachindex(text)); push!(utf8ind,ncodeunits(text)+1)
   #rexpr = r"^[-+]?[0-9]+([eE][-+]?[0-9]+)?"
   # Julia treats anything with 'e' to be a float, so for now follow suit
   rexpr = r"^[-+]?[0-9]+"
   firstPos = pos
 
   # use regex match
-  if occursin(rexpr, text[firstPos:end])
-    value = match(rexpr, text[firstPos:end])
+  if occursin(rexpr, text[utf8ind[firstPos]:end])
+    value = match(rexpr, text[utf8ind[firstPos]:end])
 
     if length(value.match) != 0
       pos += length(value.match)
-      node = make_node(rule, text[firstPos:pos-1], firstPos, pos, [])
+      node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, [])
 
       return (node, pos, nothing)
     end
@@ -345,12 +357,12 @@ function parse_newcachekey(grammar::Grammar, rule::FloatRule, text::AbstractStri
   firstPos = pos
 
   # use regex match
-  if occursin(rexpr, text[firstPos:end])
-    value = match(rexpr, text[firstPos:end])
+  if occursin(rexpr, text[utf8ind[firstPos]:end])
+    value = match(rexpr, text[utf8ind[firstPos]:end])
 
     if length(value.match) != 0
       pos += length(value.match)
-      node = make_node(rule, text[firstPos:pos-1], firstPos, pos, [])
+      node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, [])
 
       return (node, pos, nothing)
     end
