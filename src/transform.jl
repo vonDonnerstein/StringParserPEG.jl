@@ -7,11 +7,7 @@ transform(fn::Function, vector::Vector) = [transform(fn,n) for n in nodes]
 fndefault(node,children,label) = Node(node.name,node.value,node.first,node.last,children,node.ruleType)
 
 function transform(fn::Function, node::Node)
-  if isa(node.children, Array)
-    transformedchildren = [transform(fn, child) for child in node.children]
-  else
-    transformedchildren = transform(fn, node.children)
-  end
+  transformedchildren = [transform(fn, child) for child in node.children]
 
   if hasmethod(fn, (Node, Any, MatchRule{Symbol(node.name)}))
     label = MatchRule{Symbol(node.name)}()

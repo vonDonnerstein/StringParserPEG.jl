@@ -36,15 +36,10 @@ displayValue(value, ::Type{FloatRule}) = "$value,"
 
 function show(io::IO, node::Node, indent)
   println(io, "node($(node.name)) {$(displayValue(node.value, node.ruleType))$(node.ruleType)}")
-  if isa(node.children, Array)
-    for (i, child) in enumerate(node.children)
-      print(io, "  "^indent)
-      print(io, "$i: ")
-      show(io, child, indent+1)
-    end
-  else
-    print(io, "  "^(indent+1))
-    show(io, node.children, indent+1)
+  for (i, child) in enumerate(node.children)
+    print(io, "  "^indent)
+    print(io, "$i: ")
+    show(io, child, indent+1)
   end
 end
 
