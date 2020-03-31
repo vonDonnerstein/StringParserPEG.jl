@@ -118,14 +118,14 @@ function parse_newcachekey(grammar::Grammar, rule::OrRule, text::AbstractString,
   for branch in rule.values
     (child, pos, error) = parse(grammar, branch, text, pos, cache)
 
-    if child !== nothing
+    if error == nothing
       node = make_node(rule, text[utf8ind[firstPos]:utf8ind[pos-1]], firstPos, pos, unref(child))
       return (node, pos, error)
     end
   end
 
   # give error
-  return (nothing, pos, Meta.ParseError("No match (OneOrMoreRule) at pos: $pos"))
+  return (nothing, pos, Meta.ParseError("No match (OrRule) at pos: $pos"))
 end
 
 function parse_newcachekey(grammar::Grammar, rule::AndRule, text::AbstractString, pos::Int, cache)
