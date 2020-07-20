@@ -194,7 +194,10 @@ function parse_newcachekey(grammar::Grammar, rule::ZeroOrMoreRule, text::Abstrac
   children::Array = Any[]
 
   error = nothing
-  while error == nothing
+  prepos = -1
+  while error == nothing && pos != prepos
+    prepos = pos
+
     (child, pos, error) = parse(grammar, rule.value, text, pos, cache)
 
     if error === nothing && child !== nothing

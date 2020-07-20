@@ -14,3 +14,6 @@ include("../examples/calc2.jl")
 @test length(parse(Grammar("start => +(r([\\s\\S])r)"),"大家好!")[1].children) == 4
 
 @test StringParserPEG.grammargrammar == Grammar(StringParserPEG.grammargrammar_string)
+
+@test length(parse(Grammar("start => *(r(.*)r)"),"...")[1].children) == 1
+@test length(parse(Grammar("start => *(*('.'))"),"...")[1].children) == 1
